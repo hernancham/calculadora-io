@@ -4,7 +4,6 @@ import {
   OutputField,
   ResolveButton,
 } from "@/components/InputOutput";
-import * as jStat from "jstat";
 
 function Invent_PerUnico_DemProb_TD1(
   DemMin: number,
@@ -32,7 +31,7 @@ function Invent_PerUnico_DemProb_TD2(
 
   // Encontrar el valor de Z
   // valor_z =  norm.ppf(ProbabilidadDemanda)
-  const valorZ: number = jStat.normal.inv(ProbabilidadDemanda, 0, 1);
+  const valorZ: number = 0; //jStat.normal.inv(ProbabilidadDemanda, 0, 1);
   const cantidadOptima: number = DemProm + valorZ * desvEstandar; // Q* = μ + z*σ
 
   return cantidadOptima;
@@ -51,7 +50,7 @@ function Invent_PerUnico_DemProb_TD3(
 
   // Encontrar el valor de Z
   // valor_z =  norm.ppf(ProbabilidadDemanda)
-  const valorZ: number = jStat.normal.inv(ProbabilidadDemanda, 0, 1);
+  const valorZ: number = 0; //jStat.normal.inv(ProbabilidadDemanda, 0, 1);
   const cantidadOptima: number = DemProm + valorZ * desvEstandar; // Q* = μ + z*σ
 
   return cantidadOptima;
