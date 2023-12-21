@@ -6,188 +6,172 @@ import {
   ResolveButton,
 } from "@/components/InputOutput";
 
-interface TypeInputValues {
-  DemandaAnual: number;
-  CostoPorMantener: number;
-  CostoUnitario: number;
-  CostoPorPedido: number;
-  TiempoAtenderPedido: number;
-  TiempoLaborableAnio: number;
+function calcularEPQFaltantesPlaneados(
+  demandaAnual: number,
+  costoDePedir: number,
+  costoAnualMantenerInventario: number,
+  costoDeFaltantes: number,
+  diasHabiles: number
+) {
+  let FP = (costoAnualMantenerInventario + costoDeFaltantes) / costoDeFaltantes; // Calcular el factor de penalización
+  let PF =
+    costoAnualMantenerInventario /
+    (costoAnualMantenerInventario + costoDeFaltantes);
+  let Q = Math.sqrt(
+    ((2 * demandaAnual * costoDePedir) / costoAnualMantenerInventario) * FP
+  ); // Calcular el EOQ
+  let S = Q * PF; // Pedidos de espera
+  let T = (diasHabiles * Q) / demandaAnual; // Tiempo de ciclo
+  let T1 = ((Q - S) / Q) * T; // Tiempo duracion de inventario
+  let T2 = T - T1; // Tiempo de escasez
+  let CM = (costoAnualMantenerInventario * Math.sqrt(Q - S)) / (2 * Q); //calcular el costo de mantenimiento
+  let CP = (costoDePedir * demandaAnual) / Q; // Calcular el costo de pedido
+  let CF = (costoDeFaltantes * Math.sqrt(S)) / (2 * Q); // Calcular el costo de faltantes
+  let CT = CM + CP + CF; // Calcular el costo total
+
+  return {
+    factorPenalizacion: FP,
+    probabilidadDeFaltante: PF,
+    EOQ: Q,
+    pedidosDeEspera: S,
+    tiempoDeCiclo: T,
+    tiempoDuracionInventario: T1,
+    tiempoEscasez: T2,
+    costoMantenimiento: CM,
+    costoPedido: CP,
+    costoFaltantes: CF,
+    costoTotal: CT,
+  }; // Devolver el costo total calculado
 }
 
-interface TypeOutputValues {
-  CantidadEconomicaPedido: number;
-  NumeroPedidosPeriodo: number;
-  TiempoEntrePedidos: number;
-  PuntoDeReorden: number;
-  CostoTotalRelevante: number;
-  CostoTotalInventarioPorPedido: number;
-}
+export default function ModeloDeInventarios() {
+  //imput 1
+  const [demandaAnual, setDemandaAnual] = useState(0);
+  const [costoDePedir, setCostoDePedir] = useState(0);
+  const [costoAnualMantenerInventario, setCostoAnualMantenerInventario] =
+    useState(0);
+  const [costoDeFaltantes, setCostoDeFaltantes] = useState(0);
+  const [diasHabiles, setDiasHabiles] = useState(0);
 
-interface TypeListaInput {
-  label: string;
-  name: string;
-  placeholder: string;
-}
+  //output
+  const [factorPenalizacion, setFactorPenalizacion] = useState(0);
+  const [probabilidadDeFaltante, setProbabilidadDeFaltante] = useState(0);
+  const [EOQ, setEOQ] = useState(0);
+  const [pedidosDeEspera, setPedidosDeEspera] = useState(0);
+  const [tiempoDeCiclo, setTiempoDeCiclo] = useState(0);
+  const [tiempoDuracionInventario, setTiempoDuracionInventario] = useState(0);
+  const [tiempoEscasez, setTiempoEscasez] = useState(0);
+  const [costoMantenimiento, setCostoMantenimiento] = useState(0);
+  const [costoPedido, setCostoPedido] = useState(0);
+  const [costoFaltantes, setCostoFaltantes] = useState(0);
+  const [costoTotal, setCostoTotal] = useState(0);
 
-interface TypeListaOutput {
-  label: string;
-  name: string;
-}
-
-export default function FaltantesPlaneados() {
-  const [inputValues, setInputValues] = useState<TypeInputValues>({
-    DemandaAnual: 0,
-    CostoPorMantener: 0,
-    CostoUnitario: 0,
-    CostoPorPedido: 0,
-    TiempoAtenderPedido: 0,
-    TiempoLaborableAnio: 0,
-  });
-
-  const [outputValues, setOutputValues] = useState<TypeOutputValues>({
-    CantidadEconomicaPedido: 0,
-    NumeroPedidosPeriodo: 0,
-    TiempoEntrePedidos: 0,
-    PuntoDeReorden: 0,
-    CostoTotalRelevante: 0,
-    CostoTotalInventarioPorPedido: 0,
-  });
-
-  const listaInput: TypeListaInput[] = [
-    {
-      label: "Demanda Anual",
-      name: "DemandaAnual",
-      placeholder: "0",
-    },
-    {
-      label: "Costo Por Mantener",
-      name: "CostoPorMantener",
-      placeholder: "0",
-    },
-    {
-      label: "Costo Unitario",
-      name: "CostoUnitario",
-      placeholder: "0",
-    },
-    {
-      label: "Costo Por Pedido",
-      name: "CostoPorPedido",
-      placeholder: "0",
-    },
-    {
-      label: "Tiempo para Atender Pedido",
-      name: "TiempoAtenderPedido",
-      placeholder: "0",
-    },
-    {
-      label: "Tiempo Laborable Anual",
-      name: "TiempoLaborableAnio",
-      placeholder: "0",
-    },
-  ];
-
-  const listaOutput: TypeListaOutput[] = [
-    {
-      label: "Cantidad Economica de Pedido",
-      name: "CantidadEconomicaPedido",
-    },
-    {
-      label: "Numero de Pedido por Periodo",
-      name: "NumeroPedidosPeriodo",
-    },
-    {
-      label: "Tiempo entre Pedidos",
-      name: "TiempoEntrePedidos",
-    },
-    {
-      label: "Punto de Reorden",
-      name: "PuntoDeReorden",
-    },
-    {
-      label: "Costo Total Relevante",
-      name: "CostoTotalRelevante",
-    },
-    {
-      label: "Costo Total del Inventario por Periodo",
-      name: "CostoTotalInventarioPorPedido",
-    },
-  ];
-
-  const handleInputChange = (e: any) => {
-    const { name, value } = e.target;
-    const parsedValue = !isNaN(parseFloat(value)) ? parseFloat(value) : 0;
-    setInputValues((prevValues) => ({
-      ...prevValues,
-      [name]: parsedValue,
-    }));
-  };
-
-  const handleResolveClick = () => {
-    const {
-      DemandaAnual,
-      CostoPorMantener,
-      CostoUnitario,
-      CostoPorPedido,
-      TiempoAtenderPedido,
-      TiempoLaborableAnio,
-    } = inputValues;
-
-    const CantidadEconomicaPedido = Math.sqrt(
-      (2 * DemandaAnual * CostoPorPedido) / CostoPorMantener
+  const calcular = () => {
+    const resultado = calcularEPQFaltantesPlaneados(
+      demandaAnual,
+      costoDePedir,
+      costoAnualMantenerInventario,
+      costoDeFaltantes,
+      diasHabiles
     );
-
-    const NumeroPedidosPeriodo = DemandaAnual / CantidadEconomicaPedido;
-
-    const TiempoEntrePedidos = TiempoLaborableAnio / NumeroPedidosPeriodo;
-
-    const PuntoDeReorden =
-      (DemandaAnual * TiempoAtenderPedido) / TiempoLaborableAnio;
-
-    const CostoTotalRelevante =
-      (DemandaAnual * CostoPorPedido) / CantidadEconomicaPedido +
-      (CantidadEconomicaPedido * CostoPorMantener) / 2;
-
-    const CostoTotalInventarioPorPedido =
-      DemandaAnual * CostoUnitario + CostoTotalRelevante;
-
-    setOutputValues({
-      CantidadEconomicaPedido,
-      NumeroPedidosPeriodo,
-      TiempoEntrePedidos,
-      PuntoDeReorden,
-      CostoTotalRelevante,
-      CostoTotalInventarioPorPedido,
-    });
+    setFactorPenalizacion(resultado.factorPenalizacion);
+    setProbabilidadDeFaltante(resultado.probabilidadDeFaltante);
+    setEOQ(resultado.EOQ);
+    setPedidosDeEspera(resultado.pedidosDeEspera);
+    setTiempoDeCiclo(resultado.tiempoDeCiclo);
+    setTiempoDuracionInventario(resultado.tiempoDuracionInventario);
+    setTiempoEscasez(resultado.tiempoEscasez);
+    setCostoMantenimiento(resultado.costoMantenimiento);
+    setCostoPedido(resultado.costoPedido);
+    setCostoFaltantes(resultado.costoFaltantes);
+    setCostoTotal(resultado.costoTotal);
   };
 
   return (
     <div className="max-w-4xl mx-auto p-6 bg-slate-300 rounded-md shadow-md my-10">
-      <h2 className="text-2xl font-semibold mb-4">Resolución de Inputs</h2>
-      <div className="grid grid-cols-2 gap-20">
+      <h2 className="text-2xl font-semibold mb-4">
+        Modelo de Faltantes planeados
+      </h2>
+      <div className="grid grid-cols-2 gap-10 md:gap-20">
         <div>
-          {listaInput.map((input: TypeListaInput, index: number) => (
-            <InputField
-              key={index}
-              label={input.label}
-              name={input.name}
-              value={inputValues[input.name as keyof TypeInputValues]}
-              onChange={handleInputChange}
-              placeholder={input.placeholder}
-            />
-          ))}
-          <ResolveButton funtionClick={handleResolveClick} />
+          <InputField
+            label="Demanda Anual"
+            name="demandaAnual"
+            value={demandaAnual}
+            onChange={(e: any) => setDemandaAnual(e.target.valueAsNumber)}
+            placeholder="Demanda Anual"
+          />
+          <InputField
+            label="Costo de pedir"
+            name="costoDePedir"
+            value={costoDePedir}
+            onChange={(e: any) => setCostoDePedir(e.target.valueAsNumber)}
+            placeholder="Costo de pedir"
+          />
+          <InputField
+            label="Costo anual de mantener inventario"
+            name="costoAnualMantenerInventario"
+            value={costoAnualMantenerInventario}
+            onChange={(e: any) =>
+              setCostoAnualMantenerInventario(e.target.valueAsNumber)
+            }
+            placeholder="Costo anual de mantener inventario"
+          />
+          <InputField
+            label="Costo de faltantes"
+            name="costoDeFaltantes"
+            value={costoDeFaltantes}
+            onChange={(e: any) => setCostoDeFaltantes(e.target.valueAsNumber)}
+            placeholder="Costo de faltantes"
+          />
+          <InputField
+            label="Dias habiles"
+            name="diasHabiles"
+            value={diasHabiles}
+            onChange={(e: any) => setDiasHabiles(e.target.valueAsNumber)}
+            placeholder="Dias habiles"
+          />
+          <ResolveButton funtionClick={calcular} />
         </div>
         <div>
-          {listaOutput.map((output: any, index: number) => (
-            <OutputField
-              key={index}
-              label={output.label}
-              value={outputValues[
-                output.name as keyof TypeOutputValues
-              ].toFixed(2)}
-            />
-          ))}
+          <OutputField
+            label="Factor de penalizacion"
+            value={factorPenalizacion.toFixed(2)}
+          />
+          <OutputField
+            label="Probabilidad de faltante"
+            value={probabilidadDeFaltante.toFixed(2)}
+          />
+          <OutputField
+            label="Cantidad Optima de Pedido"
+            value={EOQ.toFixed(2)}
+          />
+          <OutputField
+            label="Pedidos de espera"
+            value={pedidosDeEspera.toFixed(2)}
+          />
+          <OutputField
+            label="Tiempo de ciclo"
+            value={tiempoDeCiclo.toFixed(2)}
+          />
+          <OutputField
+            label="Tiempo duracion de inventario"
+            value={tiempoDuracionInventario.toFixed(2)}
+          />
+          <OutputField
+            label="Tiempo de escasez"
+            value={tiempoEscasez.toFixed(2)}
+          />
+          <OutputField
+            label="Costo de mantenimiento"
+            value={costoMantenimiento.toFixed(2)}
+          />
+          <OutputField label="Costo de pedido" value={costoPedido.toFixed(2)} />
+          <OutputField
+            label="Costo de faltantes"
+            value={costoFaltantes.toFixed(2)}
+          />
+          <OutputField label="Costo total" value={costoTotal.toFixed(2)} />
         </div>
       </div>
     </div>

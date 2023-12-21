@@ -36,11 +36,11 @@ export const TablaMatrixOutput = ({
                         column === mayor ? "bg-lime-200" : ""
                       } border border-gray-400 rounded-md p-2 m-0.5 w-20`}
                     >
-                      {column.toFixed(2)}
+                      {column.toFixed(3)}
                     </p>
                   ) : (
                     <p className="border border-gray-400 rounded-md p-2 m-0.5 w-20">
-                      {column.toFixed(2)}
+                      {column.toFixed(3)}
                     </p>
                   )}
                 </td>
